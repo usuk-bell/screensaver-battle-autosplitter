@@ -6,7 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-asr = { git = "https://github.com/LiveSplit/asr", features = [
+asr = { 
+    git = "https://github.com/mitchell-merry/asr",
+    rev = "7f2f828e06e60b77e3f098ace43e3b3deb247e70",
+    features = [
     "alloc", # Working with allocations.
     # "derive", # Defining your own settings structs, converting endianness, and binding to .NET classes.
     # "flags", # Working with bit flags.

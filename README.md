@@ -1,10 +1,10 @@
 # ScreenSaver BATTLE Auto Splitter
 
-Steam 版の ScreenSaver BATTLE 用 LiveSplit Auto Splitter です。
+Steam 版の **ScreenSaver BATTLE** 用 LiveSplit Auto Splitter です。
 
-このプロジェクトは Rust と LiveSplit ASR を使い、WASM 形式の Auto Splitting Runtime を生成します。
+このプロジェクトは Rust と LiveSplit ASR を使用し、WASM 形式の Auto Splitter を生成します。
 
-現時点では Steam 版を対象としています。Switch 版対応については記載していません。
+現時点では Steam 版のみを対象としています。Switch 版には対応していません。
 
 ---
 
@@ -12,11 +12,9 @@ Steam 版の ScreenSaver BATTLE 用 LiveSplit Auto Splitter です。
 
 ### 概要
 
-この Auto Splitter は、ゲーム内の Unity Mono オブジェクトを監視して、Stage 1 の開始と各ステージの終了を LiveSplit に通知します。
+この Auto Splitter は、ゲーム内の Unity Mono / Hierarchy 情報から `BattleManager` を取得し、Stage 1 の開始と各ステージの終了を LiveSplit に通知します。
 
-利用者が追加するのは、リポジトリのビルド成果物ではなく、GitHub Releases で配布される完成済みの `.wasm` ファイルです。
-
-この README だけを見れば、一般利用者が LiveSplit に導入して使い始める流れが確認できます。
+一般利用者は Rust や Cargo をインストールする必要はありません。GitHub Releases で配布される完成済みの `.wasm` ファイルを使用してください。
 
 ### 機能
 
@@ -24,25 +22,18 @@ Steam 版の ScreenSaver BATTLE 用 LiveSplit Auto Splitter です。
 - 各ステージで VICTORY 時に自動で Split する
 - GAME OVER 時には Split しない
 - Stage 内の Retry ではタイマーを Reset しない
-- Stage Select へ戻って Stage 1 を再選択した場合は、新しい Run として再スタートする
-- LiveSplit の Timing Method は Game Time を前提とする
+- Stage Select へ戻って Stage 1 を再選択した場合は、新しい Run として Reset + Start する
+- LiveSplit の Timing Method は Game Time を使用する
 
 ### 動作仕様
 
 #### 自動スタート / リセット
 
-別のシーンから Stage 1 へ入った際に、
+別のシーンから Stage 1 へ入った際に、現在の LiveSplit の Run を Reset し、新しい Run を Start します。
 
-- 現在の LiveSplit の Run を Reset
-- 新しい Run を Start
+途中で Stage Select に戻り、再び Stage 1 を選んだ場合も、自動的に Reset + Start します。ゲーム自体を再起動する必要はありません。
 
-します。
-
-つまり、途中で記録が悪くなって Stage Select に戻り、再び Stage 1 を選んだ場合でも、自動的にリセットして新しい計測を開始します。
-
-ゲーム自体を再起動する必要はありません。
-
-ただし、Stage 1 をプレイ中にゲーム内の Retry を行った場合は、タイマーを Reset / Restart しません。
+Stage 1 を含め、ステージ内でゲームの Retry を行った場合はタイマーを Reset / Restart しません。
 
 #### 自動 Split
 
@@ -50,110 +41,101 @@ Steam 版の ScreenSaver BATTLE 用 LiveSplit Auto Splitter です。
 
 「GAME OVER」では Split しません。
 
-最終ステージも、特殊な Stop 処理ではなく、通常の LiveSplit による最後の Split として扱います。
+最終ステージも特殊な Stop 処理ではなく、通常の LiveSplit による最後の Split として扱います。
 
 #### Timing Method
 
-この Auto Splitter を利用する場合、LiveSplit の Timing Method は必ず Game Time を使用してください。
-
-これは重要です。Auto Splitter はゲーム中の時間軸に対して動作しており、実ゲームの開始状態と連動するためです。
+この Auto Splitter を利用する場合、LiveSplit の Timing Method は **Game Time** に設定してください。
 
 #### +1.000 秒の補正について
 
 ゲームでは Stage Select でステージを決定してから、約 1 秒の Fade 処理を経て Battle Scene がロードされます。
 
-この Auto Splitter は Battle Scene 側で Stage 1 への入場を検出しているため、計測開始時に Game Time に +1.000 秒を設定して、この Fade 時間を補正しています。
+この Auto Splitter は Battle Scene 側で Stage 1 への入場を検出しているため、計測開始時に Game Time を `+1.000` 秒に設定し、Stage Select 側の Fade 時間を補正しています。
 
-この補正は実測で確認したものです。
-
-そのため、タイマーが 0 秒ではなく約 1 秒から始まるように見えるのは仕様です。これは「1 秒遅れている不具合」ではなく、Stage Select の演出時間を考慮した補正です。
+そのため、タイマーが 0 秒ではなく約 1 秒から始まるように見えるのは仕様です。
 
 ### 導入方法
-
-通常の利用者は Rust や Cargo をインストールして自分でビルドする必要はありません。
-
-GitHub Releases で配布される完成済みの `.wasm` ファイルを使う想定です。
 
 1. この GitHub リポジトリの Releases を開く
 2. 最新の Release から `.wasm` ファイルをダウンロードする
 3. LiveSplit を起動する
-4. LiveSplit を右クリックして Edit Layout を開く
-5. 「+」から Control → Auto Splitting Runtime を追加する
-6. Layout Settings から Auto Splitting Runtime の設定を開く
+4. LiveSplit を右クリックして **Edit Layout** を開く
+5. `+` から **Control → Auto Splitting Runtime** を追加する
+6. **Layout Settings** から Auto Splitting Runtime の設定を開く
 7. ダウンロードした `.wasm` ファイルを指定する
-8. LiveSplit の Timing Method を Game Time に設定する
+8. LiveSplit の Timing Method を **Game Time** に設定する
 9. ScreenSaver BATTLE を起動する
 10. Stage 1 を選択し、自動で Reset / Start されることを確認する
 
-このリポジトリで実際に生成される WASM は、Cargo の crate 名と出力設定に基づいて次のファイル名になります。
+このリポジトリで生成される Release 用 WASM は次のファイルです。
 
 ```text
 target/wasm32-unknown-unknown/release/screensaver_battle_autosplitter.wasm
 ```
 
-GitHub Releases の Asset として配布するのが想定です。`target/` 配下のビルド成果物をリポジトリ自体に含める運用は行いません。
+この `.wasm` を GitHub Releases の Asset として配布します。`target/` 配下のビルド成果物はリポジトリ自体には含めません。
 
 ### LiveSplit 側の Split 設定
 
-Auto Splitter 自体は VICTORY ごとに Split を送信するため、LiveSplit 側では実際に走るルートに合わせた Segment を用意する必要があります。
+Auto Splitter は VICTORY ごとに Split を送信するため、LiveSplit 側では実際に走るルートに合わせた Segment を用意してください。
 
-たとえば、次のような形を作るイメージです。
+例:
 
 - Stage 1
 - Stage 2
 - Stage 3
 - ...
 
-Segment の数や構成は、実際のプレイルートと分割の考え方に合わせて調整してください。
-
-このプロジェクトがソース上で明確に全ステージ数を定義しているわけではないため、勝手に全ステージを断定することはしません。
+Segment の数や構成は、実際のプレイルートと分割方法に合わせて調整してください。
 
 ### 動作確認
 
-導入後は次を確認してください。
+現在の実装では、開発環境に加えて別PC環境でも以下の動作を確認しています。
 
-- Stage 1 に入ると Reset + Start される
-- VICTORY で Split される
-- GAME OVER では Split されない
-- ステージ内 Retry でタイマーが Reset されない
-- Stage Select に戻って Stage 1 を再選択すると、新しい Run として Reset + Start される
+- Stage 1 入場時の Reset + Start
+- VICTORY 時の Split
+- GAME OVER 時に Split しない
+- ステージ内 Retry でタイマーを Reset しない
+- Retry によって `BattleManager` が再生成された場合も追従する
+- Stage Select に戻って Stage 1 を再選択した場合の Reset + Start
 
 ### トラブルシューティング
 
 #### Auto Splitter が動かない
 
-確認項目は次のとおりです。
+次を確認してください。
 
 - Steam 版の ScreenSaver BATTLE を使用しているか
-- Auto Splitting Runtime に正しい `.wasm` を指定しているか
+- Auto Splitting Runtime に最新の `.wasm` を指定しているか
 - ゲームが起動しているか
 - LiveSplit の Timing Method が Game Time になっているか
 
 #### タイマーが 0 秒ではなく約 1 秒から始まる
 
-これは仕様です。
+仕様です。
 
-Stage Select の Fade 時間を補正するため、Stage 1 検出時に Game Time に +1.000 秒を設定しています。
+Stage Select の Fade 時間を補正するため、Stage 1 検出時に Game Time を `+1.000` 秒に設定しています。
 
 #### Retry したのにタイマーがリセットされない
 
-これも仕様です。
+仕様です。
 
-Stage 内の Retry は同じ Run の継続として扱います。Stage Select に戻り、Stage 1 を改めて開始した場合にのみ、Reset + Start します。
+Stage 内の Retry は同じ Run の継続として扱います。Stage Select に戻り、Stage 1 を改めて開始した場合にのみ Reset + Start します。
 
 #### ゲーム更新後に動かなくなった
 
-この Auto Splitter はゲームのメモリを読み取って動作しているため、ゲーム更新後に動作しなくなる可能性があります。
+この Auto Splitter はゲームのメモリおよび Unity の内部構造を読み取って動作しているため、ゲームやUnityバージョンの更新によって動作しなくなる可能性があります。
 
-問題が発生した場合は、リポジトリの Issues が有効であればそちらで報告してください。Issue の有無はリポジトリ側で確認できる場合に案内します。
+問題が発生した場合は、GitHub Issues から報告してください。
 
 ### 自分でビルドする場合
 
-一般利用者にはこの作業は不要です。これは開発者向けの情報です。
+一般利用者には不要です。以下は開発者向けの情報です。
 
-このリポジトリでは、Rust の安定版が `rust-toolchain` に設定されており、`.cargo/config.toml` で `wasm32-unknown-unknown` をターゲットにしています。
+このリポジトリでは、Rust の安定版を使用し、`.cargo/config.toml` で `wasm32-unknown-unknown` をターゲットにしています。
 
-必要な準備:
+ターゲットの追加:
 
 ```bash
 rustup target add wasm32-unknown-unknown --toolchain stable
@@ -165,13 +147,7 @@ Release ビルド:
 cargo build --release
 ```
 
-または短縮形:
-
-```bash
-cargo b --release
-```
-
-生成される WASM の出力先は次のとおりです。
+生成される WASM:
 
 ```text
 target/wasm32-unknown-unknown/release/screensaver_battle_autosplitter.wasm
@@ -181,23 +157,25 @@ target/wasm32-unknown-unknown/release/screensaver_battle_autosplitter.wasm
 
 ### 技術メモ
 
-この Auto Splitter の基本的な仕組みは、次の通りです。
+現在の実装は次のような構成です。
 
-- Unity Mono の `BattleManager` を監視する
+- ASR の Unity Mono 機能から `Assembly-CSharp` と `BattleManager` の型情報を取得する
+- `stageNum`、`startFlg`、`finishFlg`、`video` のフィールドオフセットを Mono metadata から名前で取得する
 - Scene の変化と `stageNum` から Stage 1 への入場を判断する
+- Unity 2023.2.20f1 の native Hierarchy を辿り、`BattleManager` GameObject から現在の managed `BattleManager` を取得する
 - `finishFlg` の変化からステージ終了を判断する
 - `BattleManager.video` の Unity native object の状態から VICTORY / GAME OVER を判定する
-- `BattleManager` の複数の pointer path に対応する
-- StageSelectManager には依存しない
+- ステージ内 Retry などで `BattleManager` が再生成された場合も、Hierarchy から現在のインスタンスを再取得する
+- `mono-2.0-bdwgc.dll` からの固定 pointer path には依存しない
+- `StageSelectManager` には依存しない
 
-具体的なメモリアドレスや pointer の値は、利用者向け README には記載しません。これは開発用途の補助情報としてのみ扱うべきためです。
+Unity の内部 offset はゲームの使用する Unity バージョンに依存する実装詳細であり、ゲーム更新後には再調査が必要になる可能性があります。
 
 ### 開発協力
 
-Auto Splitterの調査・設計・実装にあたり、以下の支援を利用しました。
+Auto Splitter の調査・設計・実装にあたり、以下の支援を利用しました。
 
 - OpenAI ChatGPT (GPT-5.6 Sol)
-
 
 ### ライセンス
 
@@ -211,11 +189,15 @@ Copyright (c) 2026 usuk-bell (usuk_bell)
 
 ### Overview
 
-This project is a LiveSplit Auto Splitter for the Steam version of ScreenSaver BATTLE.
+This project is a LiveSplit Auto Splitter for the Steam version of **ScreenSaver BATTLE**.
 
-It is written in Rust and uses LiveSplit ASR to generate a WASM-based Auto Splitting Runtime.
+It is written in Rust and uses LiveSplit ASR to generate a WASM-based Auto Splitter.
 
-This repository is intended for the Steam version only. It does not claim support for the Switch version.
+The Steam version is currently supported. The Switch version is not supported.
+
+The splitter locates the game's `BattleManager` through Unity Mono metadata and the Unity scene hierarchy, then uses it to detect the beginning of Stage 1 and the end of each stage.
+
+Most users do not need Rust or Cargo. Download the finished `.wasm` file from GitHub Releases.
 
 ### Features
 
@@ -224,22 +206,17 @@ This repository is intended for the Steam version only. It does not claim suppor
 - Do not split on GAME OVER
 - Do not reset the timer on Retry inside a stage
 - Reset and restart when returning to Stage Select and selecting Stage 1 again
-- Requires LiveSplit Timing Method to be set to Game Time
+- Uses LiveSplit Game Time
 
 ### Behavior
 
 #### Auto start / reset
 
-When the game transitions from another scene into Stage 1, the splitter will:
+When the game transitions from another scene into Stage 1, the splitter resets the current LiveSplit run and starts a new run.
 
-- Reset the current LiveSplit run
-- Start a new run
+Returning to Stage Select and selecting Stage 1 again also starts a new run. Restarting the game itself is not required.
 
-This also applies when a run becomes unstable and the player returns to Stage Select, then chooses Stage 1 again.
-
-No game restart is required.
-
-If the player retries inside Stage 1, the timer is not reset or restarted.
+Retries inside a stage do not reset or restart the timer.
 
 #### Auto split
 
@@ -251,48 +228,40 @@ The final stage is handled as a normal final split rather than a special stop co
 
 #### Timing Method
 
-When using this Auto Splitter, LiveSplit must use Game Time as the Timing Method.
-
-This is required because the splitter is designed around the in-game time flow and the stage start detection.
+Set LiveSplit's Timing Method to **Game Time** when using this Auto Splitter.
 
 #### About the +1.000 second correction
 
-In the game, after a stage is selected in Stage Select, there is a fade/loading period of roughly 1 second before the Battle Scene fully loads.
+After selecting a stage in Stage Select, the game performs roughly one second of fade/loading before the Battle Scene is loaded.
 
-This splitter detects the Stage 1 entrance in the Battle Scene, so it sets the Game Time to +1.000 seconds at the start of the run to compensate for that fade time.
+Because the splitter detects the Stage 1 entrance from the Battle Scene, it starts Game Time at `+1.000` seconds to compensate for the Stage Select fade.
 
-This is intentional and confirmed by testing.
-
-Therefore, a timer appearing to begin at about 1 second is expected behavior and is not a bug.
+A timer appearing to begin at about one second is therefore expected behavior.
 
 ### Installation
-
-Most users do not need to install Rust or build the project themselves.
-
-The intended workflow is to download the finished `.wasm` file from the repository's GitHub Releases.
 
 1. Open the Releases page for this repository
 2. Download the latest `.wasm` asset
 3. Launch LiveSplit
-4. Right-click LiveSplit and open Edit Layout
-5. Add Control → Auto Splitting Runtime from the layout menu
-6. Open the Auto Splitting Runtime settings in Layout Settings
+4. Right-click LiveSplit and open **Edit Layout**
+5. Add **Control → Auto Splitting Runtime**
+6. Open the Auto Splitting Runtime settings from **Layout Settings**
 7. Select the downloaded `.wasm` file
-8. Set LiveSplit Timing Method to Game Time
+8. Set LiveSplit's Timing Method to **Game Time**
 9. Start ScreenSaver BATTLE
 10. Select Stage 1 and confirm that the run resets and starts automatically
 
-The generated WASM file in this repository is:
+The Release build generates:
 
 ```text
 target/wasm32-unknown-unknown/release/screensaver_battle_autosplitter.wasm
 ```
 
-This is the asset intended for release through GitHub Releases, not something to keep in the repository itself.
+This `.wasm` file is intended to be uploaded as a GitHub Release asset. Files under `target/` are not intended to be committed to the repository.
 
 ### LiveSplit split setup
 
-Because the splitter sends a split at each VICTORY, the LiveSplit layout should contain segments matching the actual route you are running.
+The splitter sends a split at each VICTORY, so prepare LiveSplit segments that match the route you are running.
 
 For example:
 
@@ -301,7 +270,20 @@ For example:
 - Stage 3
 - ...
 
-The exact number of segments depends on your route and split structure, and this repository does not define a fixed total stage count for all runs.
+The exact segment count and structure depend on the route.
+
+### Tested behavior
+
+The current implementation has been tested on the development environment and on an additional PC environment.
+
+Confirmed behavior includes:
+
+- Reset + Start when entering Stage 1
+- Split on VICTORY
+- No split on GAME OVER
+- No timer reset on an in-stage Retry
+- Correctly reacquiring `BattleManager` when it is recreated by a Retry
+- Reset + Start after returning to Stage Select and selecting Stage 1 again
 
 ### Troubleshooting
 
@@ -310,33 +292,31 @@ The exact number of segments depends on your route and split structure, and this
 Check the following:
 
 - You are using the Steam version of ScreenSaver BATTLE
-- The correct `.wasm` file is selected in Auto Splitting Runtime
+- The latest `.wasm` file is selected in Auto Splitting Runtime
 - The game is running
-- LiveSplit Timing Method is set to Game Time
+- LiveSplit's Timing Method is set to Game Time
 
-#### The timer starts at about 1 second instead of 0
+#### The timer starts at about one second instead of zero
 
 This is expected behavior.
 
-The splitter adds +1.000 seconds when Stage 1 is detected to compensate for the Stage Select fade/loading delay.
+The splitter initializes Game Time at `+1.000` seconds to compensate for the Stage Select fade/loading delay.
 
 #### A retry happened but the timer was not reset
 
-This is also intentional.
+This is intentional.
 
-Retries inside a stage are treated as part of the same run. A reset happens only when the player returns to Stage Select and starts Stage 1 again from there.
+Retries inside a stage are treated as part of the same run. A reset occurs only after returning to Stage Select and entering Stage 1 again.
 
 #### The splitter stopped working after a game update
 
-This Auto Splitter reads game memory directly, so gameplay updates may break detection in the future.
+This Auto Splitter reads game memory and Unity internal structures directly. A game update or Unity version change may therefore break detection.
 
-If this happens, please report it through the repository's Issues page if that feature is enabled.
+If this happens, please report it through GitHub Issues.
 
 ### Building from source
 
-This work is not required for most users. The following is for developers.
-
-This repository uses the stable Rust toolchain from `rust-toolchain`, and `.cargo/config.toml` targets `wasm32-unknown-unknown`.
+This section is intended for developers.
 
 Install the target:
 
@@ -344,36 +324,35 @@ Install the target:
 rustup target add wasm32-unknown-unknown --toolchain stable
 ```
 
-Release build:
+Build the Release WASM:
 
 ```bash
 cargo build --release
 ```
 
-or:
-
-```bash
-cargo b --release
-```
-
-The output file is:
+Output:
 
 ```text
 target/wasm32-unknown-unknown/release/screensaver_battle_autosplitter.wasm
 ```
 
+The project builds a Rust `cdylib`, and this WASM is the file loaded by LiveSplit's Auto Splitting Runtime.
+
 ### Technical notes
 
-The basic implementation is structured as follows:
+The current implementation works as follows:
 
-- Monitor the Unity Mono `BattleManager`
+- Use ASR's Unity Mono support to resolve `Assembly-CSharp` and the `BattleManager` type
+- Resolve the `stageNum`, `startFlg`, `finishFlg`, and `video` field offsets by name from Mono metadata
 - Detect entering Stage 1 from scene changes and `stageNum`
-- Detect a stage finish from `finishFlg`
-- Determine VICTORY / GAME OVER from the state of `BattleManager.video`
-- Support multiple BattleManager pointer paths
-- Do not depend on StageSelectManager
+- Traverse the Unity 2023.2.20f1 native scene hierarchy to locate the current `BattleManager` GameObject and managed instance
+- Detect stage completion from `finishFlg`
+- Determine VICTORY / GAME OVER from the Unity native object state of `BattleManager.video`
+- Reacquire the current `BattleManager` when the game recreates it during an in-stage Retry
+- Do not depend on fixed pointer paths from `mono-2.0-bdwgc.dll`
+- Do not depend on `StageSelectManager`
 
-The exact pointer addresses are intentionally not included in the user-facing README.
+The Unity internal offsets used by this implementation are version-dependent details and may require further investigation after a game or Unity update.
 
 ### Acknowledgements
 
